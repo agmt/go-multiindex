@@ -6,21 +6,17 @@ import (
 )
 
 type MultiIndexByNonOrderedUnique[K comparable, V comparable] struct {
-	Main      *multiindex.MultiIndex[V]
 	Container map[K]V
 	GetIndex  func(v V) K
 }
 
 func NewNonOrderedUnique[K comparator.Ordered, V comparable](
-	main *multiindex.MultiIndex[V],
 	getIndex func(v V) K,
 ) *MultiIndexByNonOrderedUnique[K, V] {
 	mib := &MultiIndexByNonOrderedUnique[K, V]{
-		Main:      main,
 		Container: make(map[K]V),
 		GetIndex:  getIndex,
 	}
-	main.AddIndex(mib)
 	return mib
 }
 
@@ -53,7 +49,7 @@ func (t *MultiIndexByNonOrderedUnique[K, V]) FindValue(v V) multiindex.ConstIter
 	}
 }
 
-func (t *MultiIndexByNonOrderedUnique[K, V]) RemoveIterator(it multiindex.ConstIterator[V]) {
+func (t *MultiIndexByNonOrderedUnique[K, V]) Erase_Internal(it multiindex.ConstIterator[V]) {
 	iter, ok := it.(MapIterator[K, V])
 	if !ok {
 		panic("wrong iterator")

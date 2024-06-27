@@ -7,21 +7,17 @@ import (
 )
 
 type MultiIndexByOrderedNonUnique[K comparator.Ordered, V comparable] struct {
-	Main      *multiindex.MultiIndex[V]
 	Container *rbtree.RbTree[K, V]
 	GetIndex  func(v V) K
 }
 
 func NewOrderedNonUnique[K comparator.Ordered, V comparable](
-	main *multiindex.MultiIndex[V],
 	getIndex func(v V) K,
 ) *MultiIndexByOrderedNonUnique[K, V] {
 	mib := &MultiIndexByOrderedNonUnique[K, V]{
-		Main:      main,
 		Container: rbtree.New[K, V](comparator.OrderedTypeCmp),
 		GetIndex:  getIndex,
 	}
-	main.AddIndex(mib)
 	return mib
 }
 
@@ -46,7 +42,7 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) FindValue(v V) multiindex.ConstIter
 	return nil
 }
 
-func (t *MultiIndexByOrderedNonUnique[K, V]) RemoveIterator(it multiindex.ConstIterator[V]) {
+func (t *MultiIndexByOrderedNonUnique[K, V]) Erase_Internal(it multiindex.ConstIterator[V]) {
 	iter, ok := it.(*rbtree.RbTreeIterator[K, V])
 	if !ok {
 		panic("not iterator")

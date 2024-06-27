@@ -11,9 +11,9 @@ type MultiIndexByI[V comparable] interface {
 	Insert(V) ConstIterator[V]
 	// FindFirst(key K) ConstIterator[V] // Unique for each type
 	FindValue(v V) ConstIterator[V]
-	RemoveIterator(ConstIterator[V])
+	Erase_Internal(ConstIterator[V]) // Erase only
 	Size() int
-	// Traversal(cb func(k K, v V))
+	// TraversalKV(cb func(k K, v V))
 	TraversalValue(cb func(v V) bool)
 }
 
@@ -40,7 +40,7 @@ func (m *MultiIndex[V]) Insert(v V) bool {
 			// rollback
 			for j := 0; j < i; j++ {
 				it := m.MultiIndexBy[j].FindValue(v)
-				m.MultiIndexBy[j].RemoveIterator(it)
+				m.MultiIndexBy[j].Erase_Internal(it)
 			}
 			return false
 		}
@@ -49,7 +49,7 @@ func (m *MultiIndex[V]) Insert(v V) bool {
 	return true
 }
 
-func (m *MultiIndex[V]) EraseValue(v V) {
+func (m *MultiIndex[V]) Erase(v V) {
 	if len(m.MultiIndexBy) == 0 {
 		panic("multiindex has no indexes")
 	}
@@ -61,7 +61,7 @@ func (m *MultiIndex[V]) EraseValue(v V) {
 			// panic?
 			continue
 		}
-		cont.RemoveIterator(it)
+		cont.Erase_Internal(it)
 	}
 }
 
@@ -74,8 +74,8 @@ func (m MultiIndex[V]) Size() int {
 }
 
 // ToDo: if `m` is non-empty, all existing elements should be indexed in `mib`
-func (m *MultiIndex[V]) AddIndex(mib MultiIndexByI[V]) error {
-	m.MultiIndexBy = append(m.MultiIndexBy, mib)
+func (m *MultiIndex[V]) AddIndex(mib ...MultiIndexByI[V]) error {
+	m.MultiIndexBy = append(m.MultiIndexBy, mib...)
 	return nil
 }
 

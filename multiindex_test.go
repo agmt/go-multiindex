@@ -37,10 +37,12 @@ func TestMapOrdOrd(t *testing.T) {
 		PublushedAt: time.Time{},
 	}
 
-	byName := multiindex_container.NewOrderedUnique(m, func(b Book) string { return b.Name })
-	byAuthor := multiindex_container.NewOrderedNonUnique(m, func(b Book) string { return b.Author })
-	byISBN := multiindex_container.NewNonOrderedUnique(m, func(b Book) string { return b.ISBN })
-	byAuthorNonOrdered := multiindex_container.NewNonOrderedNonUnique(m, func(b Book) string { return b.Author })
+	byName := multiindex_container.NewOrderedUnique(func(b Book) string { return b.Name })
+	byAuthor := multiindex_container.NewOrderedNonUnique(func(b Book) string { return b.Author })
+	byISBN := multiindex_container.NewNonOrderedUnique(func(b Book) string { return b.ISBN })
+	byAuthorNonOrdered := multiindex_container.NewNonOrderedNonUnique(func(b Book) string { return b.Author })
+
+	m.AddIndex(byName, byAuthor, byISBN, byAuthorNonOrdered)
 
 	m.Insert(book1)
 	m.Insert(book2)
@@ -120,7 +122,7 @@ func TestMapOrdOrd(t *testing.T) {
 		if !it.IsValid() {
 			break
 		}
-		m.EraseValue(it.Value())
+		m.Erase(it.Value())
 	}
 	bookIt = byName.Find(book1.Name)
 	if bookIt.Value() != book1 {
