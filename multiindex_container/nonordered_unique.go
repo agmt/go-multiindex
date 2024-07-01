@@ -79,6 +79,14 @@ func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalValue(visitor func(v V) bo
 	}
 }
 
+func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalWithKey(k K, visitor func(v V) bool) {
+	v, ok := t.Container[k]
+	if !ok {
+		return
+	}
+	visitor(v)
+}
+
 type MapIterator[K comparable, V any] struct {
 	Key K
 	Map map[K]V

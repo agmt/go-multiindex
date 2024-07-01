@@ -65,3 +65,15 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalValue(visitor func(v V) bo
 		return visitor(v)
 	})
 }
+
+func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalWithKey(k K, visitor func(v V) bool) {
+	for node := t.Container.FindLowerBoundNode(k); node != nil; node = node.Next() {
+		if node.Key() != k {
+			return
+		}
+		ret := visitor(node.Value())
+		if !ret {
+			return
+		}
+	}
+}
