@@ -1,6 +1,7 @@
 package multiindex_test
 
 import (
+	"iter"
 	"testing"
 	"time"
 
@@ -13,6 +14,14 @@ type Book struct {
 	Author      string
 	ISBN        string
 	PublushedAt time.Time
+}
+
+type Rangeable[K, V any] interface {
+	All() iter.Seq2[K, V]
+}
+
+type RangeableKey[K, V any] interface {
+	Where(K) iter.Seq[V]
 }
 
 func TestMapOrdOrd(t *testing.T) {
@@ -116,6 +125,37 @@ func TestMapOrdOrd(t *testing.T) {
 	if err := m.Verify(); err != nil {
 		t.Errorf("%v", err)
 	}
+
+	testRange := func(f Rangeable[string, Book]) {
+		count := 0
+		for k, v := range f.All() {
+			_ = k
+			_ = v
+			count += 1
+		}
+		if count != 3 {
+			t.Errorf("count: %d != 3", count)
+		}
+	}
+	testRange(byName)
+	testRange(byAuthor)
+	testRange(byISBN)
+	testRange(byAuthorNonOrdered)
+
+	testRangeKey := func(f RangeableKey[string, Book], key string, expectedCount int) {
+		count := 0
+		for v := range f.Where(key) {
+			_ = v
+			count += 1
+		}
+		if count != expectedCount {
+			t.Errorf("count: %d != %d", count, expectedCount)
+		}
+	}
+	testRangeKey(byName, "Around the World in Eighty Days", 1)
+	testRangeKey(byAuthor, "Herbert George Wells", 2)
+	testRangeKey(byISBN, "9780000003", 1)
+	testRangeKey(byAuthorNonOrdered, "Herbert George Wells", 2)
 
 	for {
 		it := byAuthor.Find(book2.Author)
