@@ -4,7 +4,6 @@ import (
 	"iter"
 
 	"github.com/agmt/go-multiindex"
-	"github.com/liyue201/gostl/utils/comparator"
 )
 
 type MultiIndexByNonOrderedNonUnique[K comparable, V comparable] struct {
@@ -12,7 +11,7 @@ type MultiIndexByNonOrderedNonUnique[K comparable, V comparable] struct {
 	GetIndex  func(v V) K
 }
 
-func NewNonOrderedNonUnique[K comparator.Ordered, V comparable](
+func NewNonOrderedNonUnique[K comparable, V comparable](
 	getIndex func(v V) K,
 ) *MultiIndexByNonOrderedNonUnique[K, V] {
 	mib := &MultiIndexByNonOrderedNonUnique[K, V]{
