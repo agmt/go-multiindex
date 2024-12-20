@@ -16,6 +16,11 @@ type Book struct {
 	PublushedAt time.Time
 }
 
+type AuthorName struct {
+	Author string
+	Name   string
+}
+
 type Rangeable[K, V any] interface {
 	All() iter.Seq2[K, V]
 }
@@ -24,7 +29,7 @@ type RangeableKey[K, V any] interface {
 	Where(K) iter.Seq[V]
 }
 
-func testRange(t *testing.T, f Rangeable[string, Book], expectedCnt int) {
+func testRange[T comparable](t *testing.T, f Rangeable[T, Book], expectedCnt int) {
 	count := 0
 	for k, v := range f.All() {
 		_ = k
@@ -36,7 +41,7 @@ func testRange(t *testing.T, f Rangeable[string, Book], expectedCnt int) {
 	}
 }
 
-func testRangeKey(t *testing.T, f RangeableKey[string, Book], key string, expectedCount int) {
+func testRangeKey[T comparable](t *testing.T, f RangeableKey[T, Book], key T, expectedCount int) {
 	count := 0
 	for v := range f.Where(key) {
 		_ = v
@@ -69,16 +74,25 @@ func TestMapOrdOrd(t *testing.T) {
 		PublushedAt: time.Time{},
 	}
 
+	book4 := Book{
+		Name:        "The Invisible Man",
+		Author:      "Herbert George Wells",
+		ISBN:        "9780000023", // 2nd Edition
+		PublushedAt: time.Time{},
+	}
+
 	byISBNOrdered := multiindex_container.NewOrderedUnique(func(b Book) string { return b.ISBN })
 	byAuthorOrdered := multiindex_container.NewOrderedNonUnique(func(b Book) string { return b.Author })
 	byISBNNonOrdered := multiindex_container.NewNonOrderedUnique(func(b Book) string { return b.ISBN })
 	byAuthorNonOrdered := multiindex_container.NewNonOrderedNonUnique(func(b Book) string { return b.Author })
+	byAuthorName := multiindex_container.NewNonOrderedNonUnique(func(b Book) AuthorName { return AuthorName{Author: b.Author, Name: b.Name} })
 
 	m.AddIndex(
 		byISBNOrdered,
 		byAuthorOrdered,
 		byISBNNonOrdered,
 		byAuthorNonOrdered,
+		byAuthorName,
 	)
 
 	m.Insert(book1)
@@ -158,11 +172,31 @@ func TestMapOrdOrd(t *testing.T) {
 	testRange(t, byAuthorOrdered, 3)
 	testRange(t, byISBNNonOrdered, 3)
 	testRange(t, byAuthorNonOrdered, 3)
+	testRange(t, byAuthorName, 3)
 
 	testRangeKey(t, byISBNOrdered, "9780000003", 1)
 	testRangeKey(t, byAuthorOrdered, "Herbert George Wells", 2)
 	testRangeKey(t, byISBNNonOrdered, "9780000003", 1)
 	testRangeKey(t, byAuthorNonOrdered, "Herbert George Wells", 2)
+
+	ok = m.Insert(book4)
+	if !ok {
+		t.Errorf("2nd edition is not inserted")
+	}
+
+	testRange(t, byISBNOrdered, 4)
+	testRange(t, byAuthorOrdered, 4)
+	testRange(t, byISBNNonOrdered, 4)
+	testRange(t, byAuthorNonOrdered, 4)
+	testRange(t, byAuthorName, 4)
+
+	testRangeKey(t, byISBNOrdered, "9780000003", 1)
+	testRangeKey(t, byAuthorOrdered, "Herbert George Wells", 3)
+	testRangeKey(t, byISBNNonOrdered, "9780000003", 1)
+	testRangeKey(t, byAuthorNonOrdered, "Herbert George Wells", 3)
+	testRangeKey(t, byISBNOrdered, "9780000023", 1)
+	testRangeKey(t, byISBNNonOrdered, "9780000003", 1)
+	testRangeKey(t, byAuthorName, AuthorName{Author: book4.Author, Name: book4.Name}, 2)
 
 	for {
 		it := byAuthorOrdered.Find(book2.Author)
