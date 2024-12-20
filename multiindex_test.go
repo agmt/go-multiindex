@@ -24,6 +24,29 @@ type RangeableKey[K, V any] interface {
 	Where(K) iter.Seq[V]
 }
 
+func testRange(t *testing.T, f Rangeable[string, Book], expectedCnt int) {
+	count := 0
+	for k, v := range f.All() {
+		_ = k
+		_ = v
+		count += 1
+	}
+	if count != expectedCnt {
+		t.Errorf("count: %d != 3", count)
+	}
+}
+
+func testRangeKey(t *testing.T, f RangeableKey[string, Book], key string, expectedCount int) {
+	count := 0
+	for v := range f.Where(key) {
+		_ = v
+		count += 1
+	}
+	if count != expectedCount {
+		t.Errorf("count: %d != %d", count, expectedCount)
+	}
+}
+
 func TestMapOrdOrd(t *testing.T) {
 	m := multiindex.New[Book]()
 	book1 := Book{
@@ -131,36 +154,15 @@ func TestMapOrdOrd(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	testRange := func(f Rangeable[string, Book]) {
-		count := 0
-		for k, v := range f.All() {
-			_ = k
-			_ = v
-			count += 1
-		}
-		if count != 3 {
-			t.Errorf("count: %d != 3", count)
-		}
-	}
-	testRange(byISBNOrdered)
-	testRange(byAuthorOrdered)
-	testRange(byISBNNonOrdered)
-	testRange(byAuthorNonOrdered)
+	testRange(t, byISBNOrdered, 3)
+	testRange(t, byAuthorOrdered, 3)
+	testRange(t, byISBNNonOrdered, 3)
+	testRange(t, byAuthorNonOrdered, 3)
 
-	testRangeKey := func(f RangeableKey[string, Book], key string, expectedCount int) {
-		count := 0
-		for v := range f.Where(key) {
-			_ = v
-			count += 1
-		}
-		if count != expectedCount {
-			t.Errorf("count: %d != %d", count, expectedCount)
-		}
-	}
-	testRangeKey(byISBNOrdered, "9780000003", 1)
-	testRangeKey(byAuthorOrdered, "Herbert George Wells", 2)
-	testRangeKey(byISBNNonOrdered, "9780000003", 1)
-	testRangeKey(byAuthorNonOrdered, "Herbert George Wells", 2)
+	testRangeKey(t, byISBNOrdered, "9780000003", 1)
+	testRangeKey(t, byAuthorOrdered, "Herbert George Wells", 2)
+	testRangeKey(t, byISBNNonOrdered, "9780000003", 1)
+	testRangeKey(t, byAuthorNonOrdered, "Herbert George Wells", 2)
 
 	for {
 		it := byAuthorOrdered.Find(book2.Author)
