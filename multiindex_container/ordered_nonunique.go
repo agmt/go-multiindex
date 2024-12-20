@@ -56,45 +56,36 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) Size() int {
 	return t.Container.Size()
 }
 
-func (t *MultiIndexByOrderedNonUnique[K, V]) All() iter.Seq2[K, V] {
-	return func(yield func(K, V) bool) {
-		t.Container.Traversal(yield)
+func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalKV(visitor func(k K, v V) bool) {
+	t.Container.Traversal(func(k K, v V) bool {
+		return visitor(k, v)
+	})
+}
+
+func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalValue(visitor func(v V) bool) {
+	t.Container.Traversal(func(k K, v V) bool {
+		return visitor(v)
+	})
+}
+
+func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalWithKey(k K, visitor func(v V) bool) {
+	for node := t.Container.FindLowerBoundNode(k); node != nil; node = node.Next() {
+		if node.Key() != k {
+			return
+		}
+		ret := visitor(node.Value())
+		if !ret {
+			return
+		}
 	}
+}
+
+func (t *MultiIndexByOrderedNonUnique[K, V]) All() iter.Seq2[K, V] {
+	return t.TraversalKV
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) Where(k K) iter.Seq[V] {
 	return func(yield func(V) bool) {
-		for node := t.Container.FindLowerBoundNode(k); node != nil; node = node.Next() {
-			if node.Key() != k {
-				return
-			}
-			if !yield(node.Value()) {
-				return
-			}
-		}
-	}
-}
-
-func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalKV(visitor func(k K, v V) bool) {
-	for k, v := range t.All() {
-		if !visitor(k, v) {
-			return
-		}
-	}
-}
-
-func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalValue(visitor func(v V) bool) {
-	for _, v := range t.All() {
-		if !visitor(v) {
-			return
-		}
-	}
-}
-
-func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalWithKey(k K, visitor func(v V) bool) {
-	for v := range t.Where(k) {
-		if !visitor(v) {
-			return
-		}
+		t.TraversalWithKey(k, yield)
 	}
 }

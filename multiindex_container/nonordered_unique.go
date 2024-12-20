@@ -63,47 +63,39 @@ func (t *MultiIndexByNonOrderedUnique[K, V]) Size() int {
 	return len(t.Container)
 }
 
-func (t *MultiIndexByNonOrderedUnique[K, V]) All() iter.Seq2[K, V] {
-	return func(yield func(K, V) bool) {
-		for k, v := range t.Container {
-			if !yield(k, v) {
-				return
-			}
-		}
-	}
-}
-
-func (t *MultiIndexByNonOrderedUnique[K, V]) Where(k K) iter.Seq[V] {
-	return func(yield func(V) bool) {
-		v, ok := t.Container[k]
-		if !ok {
-			return
-		}
-		yield(v)
-	}
-}
-
 func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalKV(visitor func(k K, v V) bool) {
-	for k, v := range t.All() {
-		if !visitor(k, v) {
-			return
+	for k, v := range t.Container {
+		ok := visitor(k, v)
+		if !ok {
+			break
 		}
 	}
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalValue(visitor func(v V) bool) {
-	for _, v := range t.All() {
-		if !visitor(v) {
-			return
+	for _, v := range t.Container {
+		ok := visitor(v)
+		if !ok {
+			break
 		}
 	}
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalWithKey(k K, visitor func(v V) bool) {
-	for v := range t.Where(k) {
-		if !visitor(v) {
-			return
-		}
+	v, ok := t.Container[k]
+	if !ok {
+		return
+	}
+	visitor(v)
+}
+
+func (t *MultiIndexByNonOrderedUnique[K, V]) All() iter.Seq2[K, V] {
+	return t.TraversalKV
+}
+
+func (t *MultiIndexByNonOrderedUnique[K, V]) Where(k K) iter.Seq[V] {
+	return func(yield func(V) bool) {
+		t.TraversalWithKey(k, yield)
 	}
 }
 
