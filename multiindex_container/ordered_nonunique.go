@@ -73,8 +73,7 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalWithKey(k K, visitor func(
 		if node.Key() != k {
 			return
 		}
-		ret := visitor(node.Value())
-		if !ret {
+		if !visitor(node.Value()) {
 			return
 		}
 	}

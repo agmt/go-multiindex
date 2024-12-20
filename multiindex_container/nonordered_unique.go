@@ -65,8 +65,7 @@ func (t *MultiIndexByNonOrderedUnique[K, V]) Size() int {
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalKV(visitor func(k K, v V) bool) {
 	for k, v := range t.Container {
-		ok := visitor(k, v)
-		if !ok {
+		if !visitor(k, v) {
 			break
 		}
 	}
@@ -74,8 +73,7 @@ func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalKV(visitor func(k K, v V) 
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalValue(visitor func(v V) bool) {
 	for _, v := range t.Container {
-		ok := visitor(v)
-		if !ok {
+		if !visitor(v) {
 			break
 		}
 	}
