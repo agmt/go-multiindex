@@ -74,13 +74,13 @@ func (t *RbTree[K, V]) Last() *Node[K, V] {
 }
 
 // IterFirst returns the iterator of first node
-func (t *RbTree[K, V]) IterFirst() *RbTreeIterator[K, V] {
-	return NewIterator(t.First())
+func (t *RbTree[K, V]) IterFirst() RbTreeIterator[K, V] {
+	return RbTreeIterator[K, V]{t.First()}
 }
 
 // IterLast returns the iterator of first node
-func (t *RbTree[K, V]) IterLast() *RbTreeIterator[K, V] {
-	return NewIterator(t.Last())
+func (t *RbTree[K, V]) IterLast() RbTreeIterator[K, V] {
+	return RbTreeIterator[K, V]{t.Last()}
 }
 
 // Empty returns true if Tree is empty,otherwise returns false.
@@ -212,15 +212,14 @@ func (t *RbTree[K, V]) Delete(node *Node[K, V]) {
 }
 
 func (t *RbTree[K, V]) rbDeleteFixup(x, parent *Node[K, V]) {
-	var w *Node[K, V]
 	for x != t.root && getColor(x) {
 		if x != nil {
 			parent = x.parent
 		}
 		if x == parent.left {
-			x, w = t.rbFixupLeft(x, parent, w)
+			x = t.rbFixupLeft(parent)
 		} else {
-			x, w = t.rbFixupRight(x, parent, w)
+			x = t.rbFixupRight(parent)
 		}
 	}
 	if x != nil {
@@ -228,7 +227,8 @@ func (t *RbTree[K, V]) rbDeleteFixup(x, parent *Node[K, V]) {
 	}
 }
 
-func (t *RbTree[K, V]) rbFixupLeft(x, parent, w *Node[K, V]) (*Node[K, V], *Node[K, V]) {
+func (t *RbTree[K, V]) rbFixupLeft(parent *Node[K, V]) *Node[K, V] {
+	var x, w *Node[K, V]
 	w = parent.right
 	if !w.color {
 		w.color = BLACK
@@ -256,10 +256,11 @@ func (t *RbTree[K, V]) rbFixupLeft(x, parent, w *Node[K, V]) (*Node[K, V], *Node
 		t.leftRotate(parent)
 		x = t.root
 	}
-	return x, w
+	return x
 }
 
-func (t *RbTree[K, V]) rbFixupRight(x, parent, w *Node[K, V]) (*Node[K, V], *Node[K, V]) {
+func (t *RbTree[K, V]) rbFixupRight(parent *Node[K, V]) *Node[K, V] {
+	var x, w *Node[K, V]
 	w = parent.left
 	if !w.color {
 		w.color = BLACK
@@ -287,7 +288,7 @@ func (t *RbTree[K, V]) rbFixupRight(x, parent, w *Node[K, V]) (*Node[K, V], *Nod
 		t.rightRotate(parent)
 		x = t.root
 	}
-	return x, w
+	return x
 }
 
 func (t *RbTree[K, V]) leftRotate(x *Node[K, V]) {
