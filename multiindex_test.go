@@ -224,4 +224,14 @@ func TestMapOrdOrd(t *testing.T) {
 	if err := m.Verify(); err != nil {
 		t.Errorf("%v", err)
 	}
+
+	m.Reset()
+
+	if m.Size() != 0 {
+		t.Errorf("not reseted")
+	}
+
+	if err := m.Verify(); err != nil {
+		t.Errorf("%v", err)
+	}
 }

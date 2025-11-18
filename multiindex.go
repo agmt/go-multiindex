@@ -73,6 +73,17 @@ func (m MultiIndex[V]) Size() int {
 	return m.MultiIndexBy[0].Size()
 }
 
+func (m *MultiIndex[V]) Reset() {
+	if len(m.MultiIndexBy) == 0 {
+		return
+	}
+	cont := m.MultiIndexBy[0]
+	cont.TraversalValue(func(v V) bool {
+		m.Erase(v)
+		return true
+	})
+}
+
 // ToDo: if `m` is non-empty, all existing elements should be indexed in `mib`
 func (m *MultiIndex[V]) AddIndex(mib ...MultiIndexByI[V]) error {
 	m.MultiIndexBy = append(m.MultiIndexBy, mib...)
