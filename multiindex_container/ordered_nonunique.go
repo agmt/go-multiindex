@@ -89,3 +89,7 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) Where(k K) iter.Seq[V] {
 		t.TraversalWithKey(k, yield)
 	}
 }
+
+func (t *MultiIndexByOrderedNonUnique[K, V]) IsRbTree() (bool, error) {
+	return t.Container.IsRbTree()
+}

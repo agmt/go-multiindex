@@ -1,6 +1,7 @@
 package multiindex_test
 
 import (
+	"fmt"
 	"iter"
 	"testing"
 	"time"
@@ -8,6 +9,63 @@ import (
 	"github.com/agmt/go-multiindex"
 	"github.com/agmt/go-multiindex/multiindex_container"
 )
+
+type isRbTree interface {
+	IsRbTree() (bool, error)
+}
+
+func Verify[V comparable](m *multiindex.MultiIndex[V]) (err error) {
+	if len(m.MultiIndexBy) == 0 {
+		return nil
+	}
+	defer func() {
+		if e := recover(); e != nil {
+			err = e.(error)
+		}
+	}()
+
+	allValues := make(map[V]int)
+
+	for i, cont := range m.MultiIndexBy {
+		if t, ok := cont.(isRbTree); ok {
+			okRb, err := t.IsRbTree()
+			if err != nil {
+				return err
+			}
+			if !okRb {
+				return fmt.Errorf("index %d is not a valid RbTree", i)
+			}
+		}
+		if i == 0 {
+			cont.TraversalValue(func(v V) bool {
+				_, ok := allValues[v]
+				if ok {
+					panic(fmt.Errorf("duplicate at %d: '%+v'", i, v))
+				}
+				allValues[v] = 1
+				return true
+			})
+		} else {
+			if len(allValues) != cont.Size() {
+				panic(fmt.Errorf("wrong reported size at %d: %d != %d", i, len(allValues), cont.Size()))
+			}
+			cnt := 0
+			cont.TraversalValue(func(v V) bool {
+				_, ok := allValues[v]
+				if !ok {
+					panic(fmt.Errorf("exists only at %d: '%+v'", i, v))
+				}
+				cnt += 1
+				return true
+			})
+			if len(allValues) != cont.Size() {
+				panic(fmt.Errorf("wrong real size at %d: %d != %d", i, len(allValues), cont.Size()))
+			}
+		}
+	}
+
+	return nil
+}
 
 type Book struct {
 	Name        string
@@ -132,7 +190,7 @@ func TestMapOrdOrd(t *testing.T) {
 		t.Errorf("%v != %v", bookIt.Value(), book1)
 	}
 
-	if err := m.Verify(); err != nil {
+	if err := Verify(m); err != nil {
 		t.Errorf("%v", err)
 	}
 
@@ -155,7 +213,7 @@ func TestMapOrdOrd(t *testing.T) {
 		t.Errorf("%v != %v", bookIt.Value(), book1)
 	}
 
-	if err := m.Verify(); err != nil {
+	if err := Verify(m); err != nil {
 		t.Errorf("%v", err)
 	}
 
@@ -164,7 +222,7 @@ func TestMapOrdOrd(t *testing.T) {
 		t.Errorf("duplicate inserted")
 	}
 
-	if err := m.Verify(); err != nil {
+	if err := Verify(m); err != nil {
 		t.Errorf("%v", err)
 	}
 
@@ -221,7 +279,7 @@ func TestMapOrdOrd(t *testing.T) {
 		t.Errorf("not removed")
 	}
 
-	if err := m.Verify(); err != nil {
+	if err := Verify(m); err != nil {
 		t.Errorf("%v", err)
 	}
 
@@ -231,7 +289,7 @@ func TestMapOrdOrd(t *testing.T) {
 		t.Errorf("not reseted")
 	}
 
-	if err := m.Verify(); err != nil {
+	if err := Verify(m); err != nil {
 		t.Errorf("%v", err)
 	}
 }

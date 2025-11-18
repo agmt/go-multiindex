@@ -1,7 +1,5 @@
 package multiindex
 
-import "fmt"
-
 type ConstIterator[V comparable] interface {
 	IsValid() bool
 	Value() V
@@ -86,50 +84,22 @@ func (m *MultiIndex[V]) Reset() {
 
 // ToDo: if `m` is non-empty, all existing elements should be indexed in `mib`
 func (m *MultiIndex[V]) AddIndex(mib ...MultiIndexByI[V]) error {
+	// If any of the provided indexes implement IsRbTree(), call it to allow
+	// the underlying container to perform internal checks. Propagate any error.
+	type isRbTree interface {
+		IsRbTree() (bool, error)
+	}
+
+	for _, idx := range mib {
+		if t, ok := idx.(isRbTree); ok {
+			okRb, err := t.IsRbTree()
+			if err != nil {
+				return err
+			}
+			_ = okRb // currently we don't act on the boolean result
+		}
+	}
+
 	m.MultiIndexBy = append(m.MultiIndexBy, mib...)
-	return nil
-}
-
-func (m MultiIndex[V]) Verify() (err error) {
-	if len(m.MultiIndexBy) == 0 {
-		return nil
-	}
-	defer func() {
-		if e := recover(); e != nil {
-			err = e.(error)
-		}
-	}()
-
-	allValues := make(map[V]int)
-
-	for i, cont := range m.MultiIndexBy {
-		if i == 0 {
-			cont.TraversalValue(func(v V) bool {
-				_, ok := allValues[v]
-				if ok {
-					panic(fmt.Errorf("duplicate at %d: '%+v'", i, v))
-				}
-				allValues[v] = 1
-				return true
-			})
-		} else {
-			if len(allValues) != cont.Size() {
-				panic(fmt.Errorf("wrong reported size at %d: %d != %d", i, len(allValues), cont.Size()))
-			}
-			cnt := 0
-			cont.TraversalValue(func(v V) bool {
-				_, ok := allValues[v]
-				if !ok {
-					panic(fmt.Errorf("exists only at %d: '%+v'", i, v))
-				}
-				cnt += 1
-				return true
-			})
-			if len(allValues) != cont.Size() {
-				panic(fmt.Errorf("wrong real size at %d: %d != %d", i, len(allValues), cont.Size()))
-			}
-		}
-	}
-
 	return nil
 }
