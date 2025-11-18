@@ -44,12 +44,13 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) FindValue(v V) multiindex.ConstIter
 	return nil
 }
 
-func (t *MultiIndexByOrderedNonUnique[K, V]) Erase_Internal(it multiindex.ConstIterator[V]) {
-	iter, ok := it.(*rbtree.RbTreeIterator[K, V])
-	if !ok {
+func (t *MultiIndexByOrderedNonUnique[K, V]) Erase_Internal(iter multiindex.ConstIterator[V]) {
+	switch it := iter.(type) {
+	case rbtree.RbTreeIterator[K, V]:
+		t.Container.DeleteIter(it)
+	default:
 		panic("not iterator")
 	}
-	t.Container.DeleteIter(*iter)
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) Size() int {
