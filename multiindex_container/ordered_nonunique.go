@@ -8,7 +8,7 @@ import (
 	"github.com/liyue201/gostl/utils/comparator"
 )
 
-type MultiIndexByOrderedNonUnique[K comparator.Ordered, V comparable] struct {
+type MultiIndexByOrderedNonUnique[K comparable, V comparable] struct {
 	Container *rbtree.RbTree[K, V]
 	GetIndex  func(v V) K
 }
@@ -18,6 +18,17 @@ func NewOrderedNonUnique[K comparator.Ordered, V comparable](
 ) *MultiIndexByOrderedNonUnique[K, V] {
 	mib := &MultiIndexByOrderedNonUnique[K, V]{
 		Container: rbtree.New[K, V](comparator.OrderedTypeCmp),
+		GetIndex:  getIndex,
+	}
+	return mib
+}
+
+func NewOrderedNonUniqueWithCmp[K comparable, V comparable](
+	getIndex func(v V) K,
+	cmp func(a, b K) int,
+) *MultiIndexByOrderedNonUnique[K, V] {
+	mib := &MultiIndexByOrderedNonUnique[K, V]{
+		Container: rbtree.New[K, V](cmp),
 		GetIndex:  getIndex,
 	}
 	return mib
