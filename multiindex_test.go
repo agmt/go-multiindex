@@ -79,15 +79,19 @@ type AuthorName struct {
 	Name   string
 }
 
-type Rangeable[K, V any] interface {
+type Allable[K, V any] interface {
 	All() iter.Seq2[K, V]
 }
 
-type RangeableKey[K, V any] interface {
+type Whereable[K, V any] interface {
 	Where(K) iter.Seq[V]
 }
 
-func testRange[T comparable](t *testing.T, f Rangeable[T, Book], expectedCnt int) {
+type Rangeable[K, V any] interface {
+	Range(K, K) iter.Seq2[K, V]
+}
+
+func testAll[T comparable](t *testing.T, f Allable[T, Book], expectedCnt int) {
 	count := 0
 	for k, v := range f.All() {
 		_ = k
@@ -99,7 +103,7 @@ func testRange[T comparable](t *testing.T, f Rangeable[T, Book], expectedCnt int
 	}
 }
 
-func testRangeKey[T comparable](t *testing.T, f RangeableKey[T, Book], key T, expectedCount int) {
+func testWhere[T comparable](t *testing.T, f Whereable[T, Book], key T, expectedCount int) {
 	count := 0
 	for v := range f.Where(key) {
 		_ = v
@@ -226,35 +230,35 @@ func TestMapOrdOrd(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	testRange(t, byISBNOrdered, 3)
-	testRange(t, byAuthorOrdered, 3)
-	testRange(t, byISBNNonOrdered, 3)
-	testRange(t, byAuthorNonOrdered, 3)
-	testRange(t, byAuthorName, 3)
+	testAll(t, byISBNOrdered, 3)
+	testAll(t, byAuthorOrdered, 3)
+	testAll(t, byISBNNonOrdered, 3)
+	testAll(t, byAuthorNonOrdered, 3)
+	testAll(t, byAuthorName, 3)
 
-	testRangeKey(t, byISBNOrdered, "9780000003", 1)
-	testRangeKey(t, byAuthorOrdered, "Herbert George Wells", 2)
-	testRangeKey(t, byISBNNonOrdered, "9780000003", 1)
-	testRangeKey(t, byAuthorNonOrdered, "Herbert George Wells", 2)
+	testWhere(t, byISBNOrdered, "9780000003", 1)
+	testWhere(t, byAuthorOrdered, "Herbert George Wells", 2)
+	testWhere(t, byISBNNonOrdered, "9780000003", 1)
+	testWhere(t, byAuthorNonOrdered, "Herbert George Wells", 2)
 
 	ok = m.Insert(book4)
 	if !ok {
 		t.Errorf("2nd edition is not inserted")
 	}
 
-	testRange(t, byISBNOrdered, 4)
-	testRange(t, byAuthorOrdered, 4)
-	testRange(t, byISBNNonOrdered, 4)
-	testRange(t, byAuthorNonOrdered, 4)
-	testRange(t, byAuthorName, 4)
+	testAll(t, byISBNOrdered, 4)
+	testAll(t, byAuthorOrdered, 4)
+	testAll(t, byISBNNonOrdered, 4)
+	testAll(t, byAuthorNonOrdered, 4)
+	testAll(t, byAuthorName, 4)
 
-	testRangeKey(t, byISBNOrdered, "9780000003", 1)
-	testRangeKey(t, byAuthorOrdered, "Herbert George Wells", 3)
-	testRangeKey(t, byISBNNonOrdered, "9780000003", 1)
-	testRangeKey(t, byAuthorNonOrdered, "Herbert George Wells", 3)
-	testRangeKey(t, byISBNOrdered, "9780000023", 1)
-	testRangeKey(t, byISBNNonOrdered, "9780000003", 1)
-	testRangeKey(t, byAuthorName, AuthorName{Author: book4.Author, Name: book4.Name}, 2)
+	testWhere(t, byISBNOrdered, "9780000003", 1)
+	testWhere(t, byAuthorOrdered, "Herbert George Wells", 3)
+	testWhere(t, byISBNNonOrdered, "9780000003", 1)
+	testWhere(t, byAuthorNonOrdered, "Herbert George Wells", 3)
+	testWhere(t, byISBNOrdered, "9780000023", 1)
+	testWhere(t, byISBNNonOrdered, "9780000003", 1)
+	testWhere(t, byAuthorName, AuthorName{Author: book4.Author, Name: book4.Name}, 2)
 
 	for {
 		it := byAuthorOrdered.Find(book2.Author)
