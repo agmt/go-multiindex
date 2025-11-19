@@ -114,6 +114,18 @@ func testWhere[T comparable](t *testing.T, f Whereable[T, Book], key T, expected
 	}
 }
 
+func testRange[T comparable](t *testing.T, f Rangeable[T, Book], begin, end T, expectedCount int) {
+	count := 0
+	for k, v := range f.Range(begin, end) {
+		_ = k
+		_ = v
+		count += 1
+	}
+	if count != expectedCount {
+		t.Errorf("count: %d != %d", count, expectedCount)
+	}
+}
+
 func TestMapOrdOrd(t *testing.T) {
 	m := multiindex.New[Book]()
 	book1 := Book{
@@ -259,6 +271,11 @@ func TestMapOrdOrd(t *testing.T) {
 	testWhere(t, byISBNOrdered, "9780000023", 1)
 	testWhere(t, byISBNNonOrdered, "9780000003", 1)
 	testWhere(t, byAuthorName, AuthorName{Author: book4.Author, Name: book4.Name}, 2)
+	testRange(t, byAuthorOrdered, "Herbert George Wells", "Herbert George Wells", 0)
+	testRange(t, byAuthorOrdered, "Herbert George Wells", "Herbert George Wells1", 3)
+	testRange(t, byAuthorOrdered, "Herbert George Wells", "Jules Verne", 3)
+	testRange(t, byAuthorOrdered, "Herbert", "K", 4)
+	testRange(t, byAuthorOrdered, "K", "A", 0) // end < begin
 
 	for {
 		it := byAuthorOrdered.Find(book2.Author)
