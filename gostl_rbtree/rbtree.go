@@ -27,6 +27,11 @@ func New[K, V any](cmp comparator.Comparator[K]) *RbTree[K, V] {
 	return &RbTree[K, V]{keyCmp: cmp}
 }
 
+// Compare
+func (t RbTree[K, V]) Cmp(lhs, rhs K) int {
+	return t.keyCmp(lhs, rhs)
+}
+
 // Clear clears the RbTree
 func (t *RbTree[K, V]) Clear() {
 	t.root = nil

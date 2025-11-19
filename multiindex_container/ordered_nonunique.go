@@ -8,7 +8,7 @@ import (
 	"github.com/liyue201/gostl/utils/comparator"
 )
 
-type MultiIndexByOrderedNonUnique[K comparator.Ordered, V comparable] struct {
+type MultiIndexByOrderedNonUnique[K comparable, V comparable] struct {
 	Container *rbtree.RbTree[K, V]
 	GetIndex  func(v V) K
 }
@@ -18,6 +18,17 @@ func NewOrderedNonUnique[K comparator.Ordered, V comparable](
 ) *MultiIndexByOrderedNonUnique[K, V] {
 	mib := &MultiIndexByOrderedNonUnique[K, V]{
 		Container: rbtree.New[K, V](comparator.OrderedTypeCmp),
+		GetIndex:  getIndex,
+	}
+	return mib
+}
+
+func NewOrderedNonUniqueWithCmp[K comparable, V comparable](
+	getIndex func(v V) K,
+	cmp func(a, b K) int,
+) *MultiIndexByOrderedNonUnique[K, V] {
+	mib := &MultiIndexByOrderedNonUnique[K, V]{
+		Container: rbtree.New[K, V](cmp),
 		GetIndex:  getIndex,
 	}
 	return mib
@@ -57,6 +68,16 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) Size() int {
 	return t.Container.Size()
 }
 
+func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalRange(begin, end K, visitor func(k K, v V) bool) {
+	st := t.Container.FindLowerBoundNode(begin)
+
+	for node := st; node != nil && t.Container.Cmp(node.Key(), end) < 0; node = node.Next() {
+		if !visitor(node.Key(), node.Value()) {
+			return
+		}
+	}
+}
+
 func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalKV(visitor func(k K, v V) bool) {
 	t.Container.Traversal(func(k K, v V) bool {
 		return visitor(k, v)
@@ -87,6 +108,12 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) All() iter.Seq2[K, V] {
 func (t *MultiIndexByOrderedNonUnique[K, V]) Where(k K) iter.Seq[V] {
 	return func(yield func(V) bool) {
 		t.TraversalWithKey(k, yield)
+	}
+}
+
+func (t *MultiIndexByOrderedNonUnique[K, V]) Range(begin, end K) iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		t.TraversalRange(begin, end, yield)
 	}
 }
 
