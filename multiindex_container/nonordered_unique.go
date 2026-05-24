@@ -4,108 +4,82 @@ import (
 	"iter"
 
 	"github.com/agmt/go-multiindex"
+	"github.com/agmt/go-multiindex/swissmap"
 )
 
 type MultiIndexByNonOrderedUnique[K comparable, V comparable] struct {
-	Container map[K]V
+	Container *swissmap.Map[V, K]
 	GetIndex  func(v V) K
 }
 
 func NewNonOrderedUnique[K comparable, V comparable](
 	getIndex func(v V) K,
 ) *MultiIndexByNonOrderedUnique[K, V] {
-	mib := &MultiIndexByNonOrderedUnique[K, V]{
-		Container: make(map[K]V),
+	return &MultiIndexByNonOrderedUnique[K, V]{
+		Container: swissmap.New[V, K](getIndex),
 		GetIndex:  getIndex,
 	}
-	return mib
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) Insert(v V) multiindex.ConstIterator[V] {
-	key := t.GetIndex(v)
-	_, exists := t.Container[key]
-	if exists {
+	it, isNew := t.Container.Insert(v)
+	if !isNew {
 		return nil
 	}
-	t.Container[key] = v
-	return MapIterator[K, V]{
-		Key: key,
-		Map: t.Container,
-	}
+	return it
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) Find(key K) multiindex.ConstIterator[V] {
-	return MapIterator[K, V]{
-		Key: key,
-		Map: t.Container,
-	}
+	return t.Container.Find(key)
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) FindValue(v V) multiindex.ConstIterator[V] {
-	key := t.GetIndex(v)
-
-	return MapIterator[K, V]{
-		Key: key,
-		Map: t.Container,
-	}
+	return t.Container.Find(t.GetIndex(v))
 }
 
-func (t *MultiIndexByNonOrderedUnique[K, V]) Erase_Internal(it multiindex.ConstIterator[V]) {
-	iter, ok := it.(MapIterator[K, V])
+func (t *MultiIndexByNonOrderedUnique[K, V]) Erase_Internal(cit multiindex.ConstIterator[V]) {
+	it, ok := cit.(swissmap.Iterator[V, K])
 	if !ok {
-		panic("wrong iterator")
+		panic("not iterator")
 	}
-	delete(t.Container, iter.Key)
+	if !it.IsValid() {
+		return
+	}
+	t.Container.Erase(it.Key())
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) Size() int {
-	return len(t.Container)
+	return t.Container.Size()
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalKV(visitor func(k K, v V) bool) {
-	for k, v := range t.Container {
+	for k, v := range t.Container.AllKV() {
 		if !visitor(k, v) {
-			break
+			return
 		}
 	}
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalValue(visitor func(v V) bool) {
-	for _, v := range t.Container {
+	for v := range t.Container.All() {
 		if !visitor(v) {
-			break
+			return
 		}
 	}
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) TraversalWithKey(k K, visitor func(v V) bool) {
-	v, ok := t.Container[k]
-	if !ok {
-		return
+	if it := t.Container.Find(k); it.IsValid() {
+		visitor(it.Value())
 	}
-	visitor(v)
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) All() iter.Seq2[K, V] {
-	return t.TraversalKV
+	return t.Container.AllKV()
 }
 
 func (t *MultiIndexByNonOrderedUnique[K, V]) Where(k K) iter.Seq[V] {
 	return func(yield func(V) bool) {
 		t.TraversalWithKey(k, yield)
 	}
-}
-
-type MapIterator[K comparable, V any] struct {
-	Key K
-	Map map[K]V
-}
-
-func (it MapIterator[K, V]) IsValid() bool {
-	_, exists := it.Map[it.Key]
-	return exists
-}
-
-func (it MapIterator[K, V]) Value() V {
-	return it.Map[it.Key]
 }

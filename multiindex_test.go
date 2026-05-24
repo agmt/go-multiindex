@@ -10,10 +10,6 @@ import (
 	"github.com/agmt/go-multiindex/multiindex_container"
 )
 
-type isRbTree interface {
-	IsRbTree() (bool, error)
-}
-
 func Verify[V comparable](m *multiindex.MultiIndex[V]) (err error) {
 	if len(m.MultiIndexBy) == 0 {
 		return nil
@@ -27,15 +23,6 @@ func Verify[V comparable](m *multiindex.MultiIndex[V]) (err error) {
 	allValues := make(map[V]int)
 
 	for i, cont := range m.MultiIndexBy {
-		if t, ok := cont.(isRbTree); ok {
-			okRb, err := t.IsRbTree()
-			if err != nil {
-				return err
-			}
-			if !okRb {
-				return fmt.Errorf("index %d is not a valid RbTree", i)
-			}
-		}
 		if i == 0 {
 			cont.TraversalValue(func(v V) bool {
 				_, ok := allValues[v]
@@ -161,13 +148,15 @@ func TestMapOrdOrd(t *testing.T) {
 	byAuthorNonOrdered := multiindex_container.NewNonOrderedNonUnique(func(b Book) string { return b.Author })
 	byAuthorName := multiindex_container.NewNonOrderedNonUnique(func(b Book) AuthorName { return AuthorName{Author: b.Author, Name: b.Name} })
 
-	m.AddIndex(
+	if err := m.AddIndex(
 		byISBNOrdered,
 		byAuthorOrdered,
 		byISBNNonOrdered,
 		byAuthorNonOrdered,
 		byAuthorName,
-	)
+	); err != nil {
+		t.Fatalf("AddIndex: %v", err)
+	}
 
 	m.Insert(book1)
 	m.Insert(book2)

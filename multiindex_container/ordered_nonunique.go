@@ -1,64 +1,59 @@
 package multiindex_container
 
 import (
+	"cmp"
 	"iter"
 
 	"github.com/agmt/go-multiindex"
-	rbtree "github.com/agmt/go-multiindex/gostl_rbtree"
-	"github.com/liyue201/gostl/utils/comparator"
+	"github.com/agmt/go-multiindex/rbtree"
 )
 
 type MultiIndexByOrderedNonUnique[K comparable, V comparable] struct {
-	Container *rbtree.RbTree[K, V]
+	Container *rbtree.Tree[K, V]
 	GetIndex  func(v V) K
 }
 
-func NewOrderedNonUnique[K comparator.Ordered, V comparable](
+func NewOrderedNonUnique[K cmp.Ordered, V comparable](
 	getIndex func(v V) K,
 ) *MultiIndexByOrderedNonUnique[K, V] {
-	mib := &MultiIndexByOrderedNonUnique[K, V]{
-		Container: rbtree.New[K, V](comparator.OrderedTypeCmp),
+	return &MultiIndexByOrderedNonUnique[K, V]{
+		Container: rbtree.New[K, V](cmp.Compare[K]),
 		GetIndex:  getIndex,
 	}
-	return mib
 }
 
 func NewOrderedNonUniqueWithCmp[K comparable, V comparable](
 	getIndex func(v V) K,
 	cmp func(a, b K) int,
 ) *MultiIndexByOrderedNonUnique[K, V] {
-	mib := &MultiIndexByOrderedNonUnique[K, V]{
+	return &MultiIndexByOrderedNonUnique[K, V]{
 		Container: rbtree.New[K, V](cmp),
 		GetIndex:  getIndex,
 	}
-	return mib
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) Insert(v V) multiindex.ConstIterator[V] {
-	key := t.GetIndex(v)
-	return rbtree.NewIterator(t.Container.Insert(key, v))
+	return t.Container.Insert(t.GetIndex(v), v)
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) Find(key K) multiindex.ConstIterator[V] {
-	return rbtree.NewIterator(t.Container.FindNode(key))
+	return t.Container.Find(key)
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) FindValue(v V) multiindex.ConstIterator[V] {
 	key := t.GetIndex(v)
-
-	for node := t.Container.FindLowerBoundNode(key); node != nil; node = node.Next() {
-		if node.Value() == v {
-			return rbtree.NewIterator(node)
+	for it := t.Container.LowerBound(key); it.IsValid() && t.Container.Cmp(it.Key(), key) == 0; it = it.Next() {
+		if it.Value() == v {
+			return it
 		}
 	}
-
 	return nil
 }
 
-func (t *MultiIndexByOrderedNonUnique[K, V]) Erase_Internal(iter multiindex.ConstIterator[V]) {
-	switch it := iter.(type) {
-	case rbtree.RbTreeIterator[K, V]:
-		t.Container.DeleteIter(it)
+func (t *MultiIndexByOrderedNonUnique[K, V]) Erase_Internal(cit multiindex.ConstIterator[V]) {
+	switch it := cit.(type) {
+	case rbtree.Iterator[K, V]:
+		t.Container.Erase(it)
 	default:
 		panic("not iterator")
 	}
@@ -69,19 +64,15 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) Size() int {
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalRange(begin, end K, visitor func(k K, v V) bool) {
-	st := t.Container.FindLowerBoundNode(begin)
-
-	for node := st; node != nil && t.Container.Cmp(node.Key(), end) < 0; node = node.Next() {
-		if !visitor(node.Key(), node.Value()) {
+	for it := t.Container.LowerBound(begin); it.IsValid() && t.Container.Cmp(it.Key(), end) < 0; it = it.Next() {
+		if !visitor(it.Key(), it.Value()) {
 			return
 		}
 	}
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalKV(visitor func(k K, v V) bool) {
-	t.Container.Traversal(func(k K, v V) bool {
-		return visitor(k, v)
-	})
+	t.Container.Traversal(visitor)
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalValue(visitor func(v V) bool) {
@@ -91,18 +82,15 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalValue(visitor func(v V) bo
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) TraversalWithKey(k K, visitor func(v V) bool) {
-	for node := t.Container.FindLowerBoundNode(k); node != nil; node = node.Next() {
-		if node.Key() != k {
-			return
-		}
-		if !visitor(node.Value()) {
+	for it := t.Container.LowerBound(k); it.IsValid() && it.Key() == k; it = it.Next() {
+		if !visitor(it.Value()) {
 			return
 		}
 	}
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) All() iter.Seq2[K, V] {
-	return t.TraversalKV
+	return t.Container.All()
 }
 
 func (t *MultiIndexByOrderedNonUnique[K, V]) Where(k K) iter.Seq[V] {
@@ -115,8 +103,4 @@ func (t *MultiIndexByOrderedNonUnique[K, V]) Range(begin, end K) iter.Seq2[K, V]
 	return func(yield func(K, V) bool) {
 		t.TraversalRange(begin, end, yield)
 	}
-}
-
-func (t *MultiIndexByOrderedNonUnique[K, V]) IsRbTree() (bool, error) {
-	return t.Container.IsRbTree()
 }

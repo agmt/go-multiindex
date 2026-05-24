@@ -84,22 +84,6 @@ func (m *MultiIndex[V]) Reset() {
 
 // ToDo: if `m` is non-empty, all existing elements should be indexed in `mib`
 func (m *MultiIndex[V]) AddIndex(mib ...MultiIndexByI[V]) error {
-	// If any of the provided indexes implement IsRbTree(), call it to allow
-	// the underlying container to perform internal checks. Propagate any error.
-	type isRbTree interface {
-		IsRbTree() (bool, error)
-	}
-
-	for _, idx := range mib {
-		if t, ok := idx.(isRbTree); ok {
-			okRb, err := t.IsRbTree()
-			if err != nil {
-				return err
-			}
-			_ = okRb // currently we don't act on the boolean result
-		}
-	}
-
 	m.MultiIndexBy = append(m.MultiIndexBy, mib...)
 	return nil
 }
